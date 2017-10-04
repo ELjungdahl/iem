@@ -36,7 +36,9 @@ function loadTabs(){
 			var dt = $("#ugctable").DataTable();
 			dt.clear();
 			$.each(data.ugcs, function(idx, ugc){
-				dt.row.add([ugc.ugc, ugc.name]);		
+				dt.row.add([ugc.ugc, ugc.name, ugc.status,
+					ugc.utc_product_issue, ugc.utc_issue,
+					ugc.utc_init_expire, ugc.utc_expire]);		
 			});
 			dt.draw();
 		}

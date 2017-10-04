@@ -105,6 +105,11 @@ $ugcdiv = <<<EOM
 <tr>
  <th>UGC</th>
  <th>Name</th>
+ <th>Status</th>
+ <th>Issuance</th>
+ <th>Issue</th>
+ <th>Initial Expire</th>
+ <th>Expire</th>
 </tr>
 </thead>
 <tbody>
