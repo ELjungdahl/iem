@@ -1,32 +1,10 @@
 <?php
 require_once "../../config/settings.inc.php";
-require_once "../../include/Mobile_Detect.php";
-
-// Mobile business logic
-$detect = new Mobile_Detect;
-if ($detect->isMobile()){
-  echo <<<EOF
-<html>
-<head>
-<script>
-  var tokens = window.location.href.split('#');
-  if (tokens.length == 2){
-    window.location = 'mobile.php?vtec='+ tokens[1];
-  } else {
-    window.location = 'mobile.php?vtec=2008-O-NEW-KJAX-TO-W-0048';
-  }
-  </script>
-</head>
-<body></body>
-</html>
-EOF;
-  exit;
-}
 require_once "../../include/myview.php";
 $t = new MyView();
 $t->thispage = "severe-vtec";
+$t->title = "Valid Time Extent Code (VTEC) App";
 
-/* Pure IEM 2.0 App to do vtec stuff.  Shorter url please as well */
 $v = isset($_GET["vtec"]) ? $_GET["vtec"] : "2012-O-NEW-KBMX-TO-W-0001";
 $tokens = preg_split('/-/', $v);
 $year = $tokens[0];
@@ -36,56 +14,69 @@ $wfo4 = $tokens[3];
 $wfo = substr($wfo4,1,3);
 $phenomena = $tokens[4];
 $significance = $tokens[5];
-$eventid = intval( $tokens[6] );
+$etn = intval($tokens[6]);
 
-$headextra = <<<EOF
-<link rel="stylesheet" type="text/css" href="https://extjs.cachefly.net/ext/gpl/3.4.1.1/resources/css/ext-all.css"/>
-<link rel="stylesheet" type="text/css" href="/ext/ux/form/Spinner.css"/>
-<script type="text/javascript" src="https://extjs.cachefly.net/ext/gpl/3.4.1.1//adapter/ext/ext-base.js"></script>
-<script type="text/javascript" src="https://extjs.cachefly.net/ext/gpl/3.4.1.1/ext-all.js"></script>
-<script src="OpenLayers_GeoExt.js"></script>
-EOF;
-
-if (isset($_REQUEST["devel"])){
-    $headextra .= '<script type="text/javascript" src="js/wfos.js"></script>
-<script type="text/javascript" src="js/RowExpander.js"></script>
-<script type="text/javascript" src="js/Printer-all.js"></script>
-<script type="text/javascript" src="/ext/ux/menu/EditableItem.js"></script>
-<script type="text/javascript" src="/ext/ux/grid/GridFilters.js"></script>
-<script type="text/javascript" src="/ext/ux/grid/filter/Filter.js"></script>
-<script type="text/javascript" src="/ext/ux/form/Spinner.js"></script>
-<script type="text/javascript" src="/ext/ux/form/SpinnerStrategy.js"></script>
-<script type="text/javascript" src="/ext/ux/grid/filter/StringFilter.js"></script>
-<script type="text/javascript" src="js/overrides.js"></script>
-<script type="text/javascript" src="js/RadarPanel.js"></script>
-<script type="text/javascript" src="js/LSRFeatureStore.js"></script>
-<script type="text/javascript" src="js/SBWFeatureStore.js"></script>
-<script type="text/javascript" src="js/SBWIntersectionFeatureStore.js"></script>
-<script type="text/javascript" src="js/Ext.ux.SliderTip.js"></script>
-<script type="text/javascript" src="js/static.js"></script>';
-} else {
-	$headextra .= '<script src="app.js?v=11"></script>';
-}
-
-$headextra .= <<<EOF
+$t->headextra = <<<EOM
+<link rel="stylesheet" href="/vendor/jquery-datatables/1.10.16/datatables.min.css" />
+<link rel="stylesheet" href="/vendor/jquery-ui/1.11.4/jquery-ui.min.css" />
+<link rel="stylesheet" href="vtec_static.css" />
+EOM;
+$t->jsextra = <<<EOM
+<script src="/vendor/jquery-datatables/1.10.16/datatables.min.js"></script>
+<script src="/vendor/jquery-ui/1.11.4/jquery-ui.js"></script>
+<script type="text/javascript" src="vtec_static.js"></script>
 <script>
-Ext.namespace("cfg");
-cfg.startYear = 1986;
-cfg.header = "iem-header";
-cfg.footer = "iem-footer";
+var CONFIG = {
+  year: {$year},
+  wfo: "{$wfo}",
+  phenomena: "{$phenomena}",
+  significance: "{$significance}",
+  etn: "{$etn}"
+};
 </script>
-EOF;
+<script type="text/javascript" src="vtec_app.js"></script>
+EOM;
 
-$t->headextra = $headextra;
-$t->title = "Valid Time Extent Code (VTEC) App";
-$t->content = <<<EOF
-<div id="iem-header">
-<a href="/">IEM Homepage</a> &gt; <a href="/current/severe.phtml">Severe Weather Mainpage</a>
+$theform = <<<EOM
+<form name="control" id="myform">
+
+<p><strong>Find VTEC Product:</strong></p>
+
+<div class="form-group">
+<label for="wfo">Select Forecast Office</label>
+<select name="wfo" id="wfo" class="form-control"></select>
 </div>
-<div id="iem-footer">
+
+<div class="form-group">
+<label for="phenomena">Phenomena</label>
+<select name="phenomena" id="phenomena" class="form-control"></select>
 </div>
+
+<div class="form-group">
+<label for="significance">Significance</label>
+<select name="significance" id="significance" class="form-control"></select>
+</div>
+
+<div class="form-group">
+<label for="etn">Event Number</label>
+<input type="text" name="etn" id="etn" class="form-control" maxlength="4">
+</div>
+
+<div class="form-group">
+<label for="year">Event Year</label>
+<select name="year" id="year" class="form-control"></select>
+</div>
+
+
+<p><button type="button" id="myform-submit" class="btn btn-default"><i class="fa fa-search"></i> Load Product</button></p>
+
+</form>
+
+EOM;
+
+$helpdiv = <<<EOM
 <div id="help">
- <h2>IEM VTEC Product Browser 3.0</h2>
+ <h2>IEM VTEC Product Browser 4.0</h2>
 
  <p>This application allows easy navigation of National Weather Service
 issued products with Valid Time Extent Coding (VTEC).</p>
@@ -105,47 +96,64 @@ the tab to show the information.</i>
  <li><b>List Events:</b>  List all events of the given phenomena, significance, year, and issuing office.</li>
 </ul>
 </div>
-<div id="boilerplate"></div>
-<div id="footer"></div>
-<script>
-Ext.ns("App");
-Ext.onReady(function(){
-  var tokens = window.location.href.split('#');
-  cgiWfo = "{$wfo}";
-  cgiPhenomena = "{$phenomena}";
-  cgiSignificance = "{$significance}";
-  cgiEventId = "{$eventid}";
-  cgiYear = "{$year}";
-  if (tokens.length == 2){
-    var subtokens = tokens[1].split("/");
-    var vtectokens = subtokens[0].split("-");
-    if (vtectokens.length == 7){
-      cgiWfo = vtectokens[3].substr(1,3);
-      cgiPhenomena = vtectokens[4];
-      cgiSignificance = vtectokens[5];
-      cgiEventId = vtectokens[6].substr(0,4);
-      cgiYear = vtectokens[0];
-    }
-    if (subtokens.length > 1){
-		var radartokens = subtokens[1].split("-");
-		if (radartokens.length == 3){
-			
-			App.initRadar = radartokens[0];
-			App.initRadarProduct = radartokens[1];
-			try{
-				App.initRadarTime = Date.parseDate(radartokens[2],'YmdHi');
-			} catch(err) {}
-		}
-    }
-  } 
-  Ext.getCmp("wfoselector").setValue(cgiWfo);
-  Ext.getCmp("phenomenaselector").setValue(cgiPhenomena);
-  Ext.getCmp("significanceselector").setValue(cgiSignificance);
-  Ext.getCmp("eventid").setValue(cgiEventId);
-  Ext.getCmp("yearselector").setValue(cgiYear);
-  Ext.getCmp("mainPanel").activate(3);
-});
-</script>
+EOM;
+
+$ugcdiv = <<<EOM
+
+<table id="ugctable">
+<thead>
+<tr>
+ <th>UGC</th>
+ <th>Name</th>
+</tr>
+</thead>
+<tbody>
+
+</tbody>
+</table>
+
+EOM;
+
+$t->content = <<<EOF
+
+<div class="clearfix">&nbsp;</div>
+
+<div class="row">
+  <div class="col-md-3 well">
+    {$theform}
+  </div><!-- ./col-md-3 -->
+  <div class="col-md-9">
+
+<div class="panel with-nav-tabs panel-default" id="thetabs">
+    <div class="panel-heading">
+      <ul class="nav nav-tabs">
+         <li class="active"><a href="#help" data-toggle="tab">Help</a></li>
+         <li><a href="#radarmap" data-toggle="tab">RADAR Map</a></li>
+         <li><a href="#textdata" data-toggle="tab">Text Data</a></li>
+         <li><a href="#googlemap" data-toggle="tab">Google Map</a></li>
+         <li><a href="#sbwhistory" data-toggle="tab">SBW History</a></li>
+         <li><a href="#stormreports" data-toggle="tab">Storm Reports within SBW</a></li>
+         <li><a href="#geo" data-toggle="tab">Geography Included</a></li>
+         <li><a href="#listevents" data-toggle="tab">List Events</a></li>
+      </ul>
+    </div><!-- ./panel-heading -->
+    <div class="panel-body">
+     <div class="tab-content clearfix">
+
+       <div class="tab-pane active" id="help">{$helpdiv}</div><!-- ./help -->
+       <div class="tab-pane" id="radarmap">RADAR MAP</div><!-- ./radarmap -->
+       <div class="tab-pane" id="textdata">Text Data</div><!-- ./textdata -->
+       <div class="tab-pane" id="googlemap">Google MAP</div><!-- ./googlemap -->
+       <div class="tab-pane" id="sbwhistory">SBW History</div><!-- ./sbwhistory -->
+       <div class="tab-pane" id="stormreports">Storm Reports</div><!-- ./stormreports -->
+       <div class="tab-pane" id="geo">{$ugcdiv}</div><!-- ./geo -->
+       <div class="tab-pane" id="listevents">List Events</div><!-- ./listevents -->
+    </div><!-- ./tab-content -->
+    </div><!-- ./panel-body -->
+  </div><!-- ./col-md-9 -->
+</div><!-- ./row -->
+
+
 EOF;
-$t->render('app.phtml');
+$t->render('full.phtml');
 ?>
