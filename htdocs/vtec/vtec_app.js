@@ -21,7 +21,6 @@ function loadTabs(){
 			"vtec=2012.O.NEW.KBMX.TO.W.0001\" class=\"img img-responsive\">");
 	$.ajax({
 		data: {
-			year: CONFIG.year,
 			wfo: CONFIG.wfo,
 			phenomena: CONFIG.phenomena,
 			significance: CONFIG.significance,
@@ -46,7 +45,6 @@ function loadTabs(){
 
 	$.ajax({
 		data: {
-			year: CONFIG.year,
 			wfo: CONFIG.wfo,
 			phenomena: CONFIG.phenomena,
 			significance: CONFIG.significance,
@@ -60,7 +58,29 @@ function loadTabs(){
 			console.log(geodata);
 		}
 	});
+
+	$.ajax({
+		data: {
+			wfo: CONFIG.wfo,
+			phenomena: CONFIG.phenomena,
+			significance: CONFIG.significance,
+			year: CONFIG.year
+		},
+		url: "/json/vtec_events.py",
+		method: "GET",
+		dataType: "json",
+		success: function(data){
+			var dt = $("#eventtable").DataTable();
+			dt.clear();
+			$.each(data.events, function(idx, vtec){
+				dt.row.add([vtec.eventid]);		
+			});
+			dt.draw();
+		}
+	});
+	
 }
+
 function buildUI(){
 	// build the UI components
 	var html = "";
@@ -96,6 +116,7 @@ function buildUI(){
 		loadTabs();
 	});
 	$("#ugctable").DataTable();
+	$("#eventtable").DataTable();
 }
 
 $(function(){

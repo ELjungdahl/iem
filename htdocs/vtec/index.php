@@ -119,6 +119,21 @@ $ugcdiv = <<<EOM
 
 EOM;
 
+$eventsdiv = <<<EOM
+
+<table id="eventtable">
+<thead>
+<tr>
+ <th>ID</th>
+</tr>
+</thead>
+<tbody>
+
+</tbody>
+</table>
+
+EOM;
+
 $t->content = <<<EOF
 
 <div class="clearfix">&nbsp;</div>
@@ -152,7 +167,7 @@ $t->content = <<<EOF
        <div class="tab-pane" id="sbwhistory">SBW History</div><!-- ./sbwhistory -->
        <div class="tab-pane" id="stormreports">Storm Reports</div><!-- ./stormreports -->
        <div class="tab-pane" id="geo">{$ugcdiv}</div><!-- ./geo -->
-       <div class="tab-pane" id="listevents">List Events</div><!-- ./listevents -->
+       <div class="tab-pane" id="listevents">{$eventsdiv}</div><!-- ./listevents -->
     </div><!-- ./tab-content -->
     </div><!-- ./panel-body -->
   </div><!-- ./col-md-9 -->
