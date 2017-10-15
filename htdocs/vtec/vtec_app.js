@@ -14,6 +14,54 @@
 
 // var CONFIG is set in the base HTML page
 
+var olmap;
+var productVectorLayer;
+
+function make_iem_tms(title, layername, visible, type){
+    return new ol.layer.Tile({
+            title : title,
+            visible: visible,
+            type: type,
+            source : new ol.source.XYZ({
+                    url : '/c/tile.py/1.0.0/'+layername+'/{z}/{x}/{y}.png'
+            })
+    })
+}
+
+
+function buildMap(){
+	// Build up the mapping
+	productVectorLayer = new ol.layer.Vector({
+		title: 'VTEC Product',
+		source: new ol.source.Vector({
+			projection: ol.proj.get('EPSG:4326')
+		})
+	});
+	olmap = new ol.Map({
+		target: 'map',
+		view: new ol.View({
+			enableRotation: false,
+			projection: ol.proj.get('EPSG:4326'),
+			center: ol.proj.transform([-94.5, 42.1], 'EPSG:4326', 'EPSG:3857'),
+			zoom: 7
+		}),
+		layers : [
+			new ol.layer.Tile({
+				title : 'OpenStreetMap',
+				visible : true,
+				source : new ol.source.OSM()}),
+			make_iem_tms('US States', 's-900913', true, ''),
+			productVectorLayer]
+	});
+    var layerSwitcher = new ol.control.LayerSwitcher();
+    olmap.addControl(layerSwitcher);
+    
+    olmap.on('moveend', function(){
+    	console.log('hi');
+    });
+
+	
+}
 function loadTabs(){
 	// OK, lets load up the tab content
 	$("#radarmap").html("<img src=\"/GIS/radmap.php?layers[]=nexrad&"+
@@ -55,7 +103,16 @@ function loadTabs(){
 		method: "GET",
 		dataType: "json",
 		success: function(geodata){
-			console.log(geodata);
+			productVectorLayer.getSource().addFeatures(
+				new ol.format.GeoJSON().readFeatures(geodata),
+				{
+					featureProjection: ol.proj.get('EPSG:4326')
+			});
+			var e = productVectorLayer.getSource().getExtent();
+			x = (e[2] + e[0]) / 2.;
+			y = (e[3] + e[1]) / 2.;
+			olmap.getView().setCenter(ol.proj.transform([x, y], 'EPSG:4326',
+					'EPSG:3857'));
 		}
 	});
 
@@ -122,5 +179,6 @@ function buildUI(){
 $(function(){
 	//onReady
 	buildUI();
+	buildMap();
 	loadTabs();
 });

@@ -1,6 +1,7 @@
 <?php
 require_once "../../config/settings.inc.php";
 require_once "../../include/myview.php";
+$OL = "4.3.1";
 $t = new MyView();
 $t->thispage = "severe-vtec";
 $t->title = "Valid Time Extent Code (VTEC) App";
@@ -19,11 +20,15 @@ $etn = intval($tokens[6]);
 $t->headextra = <<<EOM
 <link rel="stylesheet" href="/vendor/jquery-datatables/1.10.16/datatables.min.css" />
 <link rel="stylesheet" href="/vendor/jquery-ui/1.11.4/jquery-ui.min.css" />
+<link rel='stylesheet' href="/vendor/openlayers/{$OL}/ol.css" type='text/css'>
+<link type="text/css" href="/vendor/openlayers/{$OL}/ol3-layerswitcher.css" rel="stylesheet" />
 <link rel="stylesheet" href="vtec_static.css" />
 EOM;
 $t->jsextra = <<<EOM
 <script src="/vendor/jquery-datatables/1.10.16/datatables.min.js"></script>
 <script src="/vendor/jquery-ui/1.11.4/jquery-ui.js"></script>
+<script src='/vendor/openlayers/{$OL}/ol.js'></script>
+<script src='/vendor/openlayers/{$OL}/ol3-layerswitcher.js'></script>
 <script type="text/javascript" src="vtec_static.js"></script>
 <script>
 var CONFIG = {
@@ -134,6 +139,16 @@ $eventsdiv = <<<EOM
 
 EOM;
 
+$mapdiv = <<<EOM
+
+<h3>Interactive Map</h3>
+
+<div id="map" style="width: 100%; height: 300px;"></div>
+
+<h3>Another Title</h3>
+
+EOM;
+
 $t->content = <<<EOF
 
 <div class="clearfix">&nbsp;</div>
@@ -150,7 +165,7 @@ $t->content = <<<EOF
          <li class="active"><a href="#help" data-toggle="tab">Help</a></li>
          <li><a href="#radarmap" data-toggle="tab">RADAR Map</a></li>
          <li><a href="#textdata" data-toggle="tab">Text Data</a></li>
-         <li><a href="#googlemap" data-toggle="tab">Google Map</a></li>
+         <li><a href="#themap" data-toggle="tab">Interactive Map</a></li>
          <li><a href="#sbwhistory" data-toggle="tab">SBW History</a></li>
          <li><a href="#stormreports" data-toggle="tab">Storm Reports within SBW</a></li>
          <li><a href="#geo" data-toggle="tab">Geography Included</a></li>
@@ -163,7 +178,7 @@ $t->content = <<<EOF
        <div class="tab-pane active" id="help">{$helpdiv}</div><!-- ./help -->
        <div class="tab-pane" id="radarmap">RADAR MAP</div><!-- ./radarmap -->
        <div class="tab-pane" id="textdata">Text Data</div><!-- ./textdata -->
-       <div class="tab-pane" id="googlemap">Google MAP</div><!-- ./googlemap -->
+       <div class="tab-pane" id="themap">{$mapdiv}</div><!-- ./themap -->
        <div class="tab-pane" id="sbwhistory">SBW History</div><!-- ./sbwhistory -->
        <div class="tab-pane" id="stormreports">Storm Reports</div><!-- ./stormreports -->
        <div class="tab-pane" id="geo">{$ugcdiv}</div><!-- ./geo -->
