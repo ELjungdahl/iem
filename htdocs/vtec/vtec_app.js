@@ -33,20 +33,22 @@ function buildMap(){
 	// Build up the mapping
 	productVectorLayer = new ol.layer.Vector({
 		title: 'VTEC Product',
-		format: new ol.format.GeoJSON(),
 		style: function(feature, resolution){
-			console.log("style was called");
-			console.log(feature);
+			return [new ol.style.Style({
+				stroke: new ol.style.Stroke({
+					color: '#000000',
+					width: 2
+				})
+			})];
 		},
 		source: new ol.source.Vector({
-			projection: ol.proj.get('EPSG:4326')
+			format: new ol.format.GeoJSON()
 		})
 	});
 	olmap = new ol.Map({
 		target: 'map',
 		view: new ol.View({
 			enableRotation: false,
-			projection: ol.proj.get('EPSG:3857'),
 			center: ol.proj.transform([-94.5, 42.1], 'EPSG:4326', 'EPSG:3857'),
 			zoom: 7
 		}),
@@ -64,9 +66,6 @@ function buildMap(){
     olmap.on('moveend', function(){
     	console.log('hi');
     });
-    // get the map to display properly
-    setTimeout(function(){ olmap.updateSize(); }, 1500);
-	
 }
 function loadTabs(){
 	// OK, lets load up the tab content
@@ -109,16 +108,19 @@ function loadTabs(){
 		method: "GET",
 		dataType: "json",
 		success: function(geodata){
-			productVectorLayer.getSource().addFeatures(
-				new ol.format.GeoJSON().readFeatures(geodata),
-				{
-					featureProjection: ol.proj.get('EPSG:3857')
+			// The below was way painful on how to get the EPSG 4326 data
+			// to load
+			var format = new ol.format.GeoJSON({
+				featureProjection: "EPSG:3857"
 			});
+			var vectorSource = new ol.source.Vector({
+				features: format.readFeatures(geodata)
+			});
+			productVectorLayer.setSource(vectorSource);
 			var e = productVectorLayer.getSource().getExtent();
 			x = (e[2] + e[0]) / 2.;
 			y = (e[3] + e[1]) / 2.;
-			olmap.getView().setCenter(ol.proj.transform([x, y], 'EPSG:4326',
-					'EPSG:3857'));
+			olmap.getView().setCenter([x, y]);
 		}
 	});
 
@@ -181,7 +183,13 @@ function buildUI(){
 	});
 	$("#ugctable").DataTable();
 	$("#eventtable").DataTable();
-	
+
+	$('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+		  var target = $(e.target).attr("href") // activated tab
+		  if (target == "#themap"){
+			  olmap.updateSize();
+		  }
+		});
 }
 
 $(function(){
