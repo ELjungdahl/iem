@@ -1,7 +1,7 @@
 <?php
 require_once "../../config/settings.inc.php";
 require_once "../../include/myview.php";
-$OL = "4.3.1";
+$OL = "4.4.2";
 $t = new MyView();
 $t->thispage = "severe-vtec";
 $t->title = "Valid Time Extent Code (VTEC) App";
@@ -143,7 +143,7 @@ $mapdiv = <<<EOM
 
 <h3>Interactive Map</h3>
 
-<div id="map" style="width: 100%; height: 300px;"></div>
+<div id="map"></div>
 
 <h3>Another Title</h3>
 

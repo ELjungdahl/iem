@@ -33,6 +33,11 @@ function buildMap(){
 	// Build up the mapping
 	productVectorLayer = new ol.layer.Vector({
 		title: 'VTEC Product',
+		format: new ol.format.GeoJSON(),
+		style: function(feature, resolution){
+			console.log("style was called");
+			console.log(feature);
+		},
 		source: new ol.source.Vector({
 			projection: ol.proj.get('EPSG:4326')
 		})
@@ -41,7 +46,7 @@ function buildMap(){
 		target: 'map',
 		view: new ol.View({
 			enableRotation: false,
-			projection: ol.proj.get('EPSG:4326'),
+			projection: ol.proj.get('EPSG:3857'),
 			center: ol.proj.transform([-94.5, 42.1], 'EPSG:4326', 'EPSG:3857'),
 			zoom: 7
 		}),
@@ -59,7 +64,8 @@ function buildMap(){
     olmap.on('moveend', function(){
     	console.log('hi');
     });
-
+    // get the map to display properly
+    setTimeout(function(){ olmap.updateSize(); }, 1500);
 	
 }
 function loadTabs(){
@@ -106,7 +112,7 @@ function loadTabs(){
 			productVectorLayer.getSource().addFeatures(
 				new ol.format.GeoJSON().readFeatures(geodata),
 				{
-					featureProjection: ol.proj.get('EPSG:4326')
+					featureProjection: ol.proj.get('EPSG:3857')
 			});
 			var e = productVectorLayer.getSource().getExtent();
 			x = (e[2] + e[0]) / 2.;
@@ -171,9 +177,11 @@ function buildUI(){
 	$("#etn").val(CONFIG.etn);
 	$("#myform-submit").click(function(){
 		loadTabs();
+		$(this).blur();
 	});
 	$("#ugctable").DataTable();
 	$("#eventtable").DataTable();
+	
 }
 
 $(function(){
