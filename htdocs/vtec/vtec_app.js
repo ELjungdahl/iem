@@ -190,6 +190,12 @@ function buildUI(){
 			  olmap.updateSize();
 		  }
 		});
+	$("#timeslider").slider({
+		min: 0,
+		max: 100,
+        slide: function( event, ui ) {
+        }
+	}).slider("pips").slider("float");
 }
 
 $(function(){
