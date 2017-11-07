@@ -69,9 +69,13 @@ function buildMap(){
 }
 function loadTabs(){
 	// OK, lets load up the tab content
+	var vstring = CONFIG.year +"."+ CONFIG.wfo +"."+ CONFIG.phenomena +
+		"."+ CONFIG.significance +"." + CONFIG.etn;
 	$("#radarmap").html("<img src=\"/GIS/radmap.php?layers[]=nexrad&"+
 			"layers[]=sbw&layers[]=sbwh&layers[]=uscounties&"+
 			"vtec=2012.O.NEW.KBMX.TO.W.0001\" class=\"img img-responsive\">");
+	$("#sbwhistory").html("<img src=\"/GIS/sbw-history.php?vtec="+ vstring +
+			"\" class=\"img img-responsive\">");
 	$.ajax({
 		data: {
 			wfo: CONFIG.wfo,
@@ -138,7 +142,8 @@ function loadTabs(){
 			var dt = $("#eventtable").DataTable();
 			dt.clear();
 			$.each(data.events, function(idx, vtec){
-				dt.row.add([vtec.eventid]);		
+				dt.row.add([vtec.eventid, vtec.product_issue, vtec.issue,
+					vtec.init_expire, vtec.expire, vtec.area, vtec.locations]);		
 			});
 			dt.draw();
 		}

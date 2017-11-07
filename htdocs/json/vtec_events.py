@@ -3,8 +3,10 @@
 import cgi
 import sys
 import json
+
 import memcache
 import psycopg2.extras
+from pyiem.util import get_dbconn
 
 ISO9660 = "%Y-%m-%dT%H:%M:%SZ"
 
@@ -16,7 +18,7 @@ def run(wfo, year, phenomena, significance):
       wfo (str): 3 character WFO identifier
       year (int): year to run for
     """
-    pgconn = psycopg2.connect(database='postgis', host='iemdb', user='nobody')
+    pgconn = get_dbconn('postgis')
     cursor = pgconn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     table = "warnings_%s" % (year,)
@@ -47,12 +49,17 @@ def run(wfo, year, phenomena, significance):
         uri = "/vtec/#%s-O-NEW-K%s-%s-%s-%04i" % (year, wfo, row['phenomena'],
                                                   row['significance'],
                                                   row['eventid'])
-        res['events'].append(dict(phenomena=row['phenomena'],
-                                  significance=row['significance'],
-                                  eventid=row['eventid'],
-                                  issue=row['utc_issue'].strftime(ISO9660),
-                                  expire=row['utc_expire'].strftime(ISO9660),
-                                  uri=uri))
+        res['events'].append(
+            dict(phenomena=row['phenomena'],
+                 significance=row['significance'],
+                 eventid=row['eventid'],
+                 area=float(row['area']),
+                 locations=row['locations'],
+                 issue=row['utc_issue'].strftime(ISO9660),
+                 product_issue=row['utc_product_issue'].strftime(ISO9660),
+                 expire=row['utc_expire'].strftime(ISO9660),
+                 init_expire=row['utc_init_expire'].strftime(ISO9660),
+                 uri=uri))
 
     return json.dumps(res)
 

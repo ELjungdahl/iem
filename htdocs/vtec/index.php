@@ -105,7 +105,7 @@ the tab to show the information.</i>
 </div>
 EOM;
 
-$ugcdiv = <<<EOM
+$infodiv = <<<EOM
 
 <table id="ugctable">
 <thead>
@@ -124,6 +124,10 @@ $ugcdiv = <<<EOM
 </tbody>
 </table>
 
+<div class="clearfix">&nbsp;</div>
+
+<div id="sbwhistory"></div>
+
 EOM;
 
 $eventsdiv = <<<EOM
@@ -132,6 +136,12 @@ $eventsdiv = <<<EOM
 <thead>
 <tr>
  <th>ID</th>
+ <th>Product Issued</th>
+ <th>VTEC Issued</th>
+ <th>Initial Expire</th>
+ <th>VTEC Expire</th>
+ <th>Area km**2</th>
+ <th>Locations</th>
 </tr>
 </thead>
 <tbody>
@@ -169,12 +179,10 @@ $t->content = <<<EOF
     <div class="panel-heading">
       <ul class="nav nav-tabs">
          <li class="active"><a href="#help" data-toggle="tab">Help</a></li>
-         <li><a href="#radarmap" data-toggle="tab">RADAR Map</a></li>
+         <li><a href="#info" data-toggle="tab">Event Info</a></li>
          <li><a href="#textdata" data-toggle="tab">Text Data</a></li>
          <li><a href="#themap" data-toggle="tab">Interactive Map</a></li>
-         <li><a href="#sbwhistory" data-toggle="tab">SBW History</a></li>
          <li><a href="#stormreports" data-toggle="tab">Storm Reports within SBW</a></li>
-         <li><a href="#geo" data-toggle="tab">Geography Included</a></li>
          <li><a href="#listevents" data-toggle="tab">List Events</a></li>
       </ul>
     </div><!-- ./panel-heading -->
@@ -182,12 +190,12 @@ $t->content = <<<EOF
      <div class="tab-content clearfix">
 
        <div class="tab-pane active" id="help">{$helpdiv}</div><!-- ./help -->
-       <div class="tab-pane" id="radarmap">RADAR MAP</div><!-- ./radarmap -->
+       <div class="tab-pane" id="info">
+{$infodiv}
+       </div><!-- ./info -->
        <div class="tab-pane" id="textdata">Text Data</div><!-- ./textdata -->
        <div class="tab-pane" id="themap">{$mapdiv}</div><!-- ./themap -->
-       <div class="tab-pane" id="sbwhistory">SBW History</div><!-- ./sbwhistory -->
        <div class="tab-pane" id="stormreports">Storm Reports</div><!-- ./stormreports -->
-       <div class="tab-pane" id="geo">{$ugcdiv}</div><!-- ./geo -->
        <div class="tab-pane" id="listevents">{$eventsdiv}</div><!-- ./listevents -->
     </div><!-- ./tab-content -->
     </div><!-- ./panel-body -->
