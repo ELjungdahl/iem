@@ -34,11 +34,14 @@ $t->jsextra = <<<EOM
 <script type="text/javascript" src="vtec_static.js"></script>
 <script>
 var CONFIG = {
+  radar: null,
+  radarProduct: null,
+  radarProductTime: null,
   year: {$year},
-  wfo: "{$wfo}",
+  wfo: "{$wfo4}",
   phenomena: "{$phenomena}",
   significance: "{$significance}",
-  etn: "{$etn}"
+  etn: {$etn}
 };
 </script>
 <script type="text/javascript" src="vtec_app.js"></script>

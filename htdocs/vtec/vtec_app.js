@@ -1,21 +1,55 @@
 // Functionality to replicate
-// [ ] RADAR Map
-// [ ] Text Data
-//     [ ] print function
-// [ ] Google Map
-//     [ ] overlay LSRs with popup details
-//     [ ] select RADAR, product, time, opacity
-//     [ ] county intersection
-// [ ] SBW History
-// [ ] Storm Reports within SBW
-// [ ] All Storm Reports
-// [ ] Geography Included
-// [ ] List Events
-
 // var CONFIG is set in the base HTML page
+// previous hashlinking looks like 2017-O-NEW-KALY-WI-Y-0015
 
 var olmap;
 var productVectorLayer;
+
+Number.prototype.padLeft = function (n,str){
+    return Array(n-String(this).length+1).join(str||'0')+this;
+}
+
+function updateHash(){
+	// Set the hashlink as per our current CONFIG
+	window.location.href = "#" + CONFIG.year +"-O-NEW-"+
+    CONFIG.wfo +"-"+ CONFIG.phenomena +"-"+
+    CONFIG.significance +"-"+
+    CONFIG.etn.padLeft(4);
+}
+
+function parseHash(){
+	// See what we have for a hash and update the CONFIG if appropriate
+	var tokens = window.location.href.split('#');
+	if (tokens.length == 2){
+	    var subtokens = tokens[1].split("/");
+	    var vtectokens = subtokens[0].split("-");
+	    if (vtectokens.length == 7){
+	    	CONFIG.year = parseInt(vtectokens[0]);
+	    	CONFIG.wfo = vtectokens[3];
+	    	CONFIG.phenomena = vtectokens[4];
+	    	CONFIG.significance = vtectokens[5];
+	    	CONFIG.etn = parseInt(vtectokens[6]);
+	    }
+	    if (subtokens.length > 1){
+            var radartokens = subtokens[1].split("-");
+            if (radartokens.length == 3){
+                CONFIG.radar = radartokens[0];
+                CONFIG.radarProduct = radartokens[1];
+                CONFIG.radarProductTime = Date.parseDate(radartokens[2],'YmdHi');
+            }
+	    }
+	}
+}
+
+function readHTMLForm(){
+	// See what the user has set
+	CONFIG.year = parseInt($("#year").val());
+	CONFIG.wfo = $("#wfo").val();
+	CONFIG.phenomena = $("#phenomena").val();
+	CONFIG.significance = $("#significance").val();
+	CONFIG.etn = parseInt($("#etn").val());
+	
+}
 
 function make_iem_tms(title, layername, visible, type){
     return new ol.layer.Tile({
@@ -148,7 +182,7 @@ function loadTabs(){
 			dt.draw();
 		}
 	});
-	
+	updateHash();
 }
 
 function buildUI(){
@@ -183,6 +217,7 @@ function buildUI(){
 
 	$("#etn").val(CONFIG.etn);
 	$("#myform-submit").click(function(){
+		readHTMLForm();
 		loadTabs();
 		$(this).blur();
 	});
@@ -205,6 +240,9 @@ function buildUI(){
 
 $(function(){
 	//onReady
+	try{
+		parseHash();
+	} catch(err) {};
 	buildUI();
 	buildMap();
 	loadTabs();
