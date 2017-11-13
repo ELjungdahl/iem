@@ -20,7 +20,6 @@ $etn = intval($tokens[6]);
 $t->headextra = <<<EOM
 <link rel="stylesheet" href="/vendor/jquery-datatables/1.10.16/datatables.min.css" />
 <link rel="stylesheet" href="/vendor/jquery-ui/1.11.4/jquery-ui.min.css" />
-<link rel="stylesheet" href="/vendor/jquery-ui-slider-pips/1.11.4/jquery-ui-slider-pips.css">
 <link rel='stylesheet' href="/vendor/openlayers/{$OL}/ol.css" type='text/css'>
 <link type="text/css" href="/vendor/openlayers/{$OL}/ol3-layerswitcher.css" rel="stylesheet" />
 <link rel="stylesheet" href="vtec_static.css" />
@@ -28,7 +27,7 @@ EOM;
 $t->jsextra = <<<EOM
 <script src="/vendor/jquery-datatables/1.10.16/datatables.min.js"></script>
 <script src="/vendor/jquery-ui/1.11.4/jquery-ui.js"></script>
-<script src="/vendor/jquery-ui-slider-pips/1.11.4/jquery-ui-slider-pips.js"></script>
+<script src="/vendor/moment/2.13.0/moment.min.js"></script>
 <script src='/vendor/openlayers/{$OL}/ol.js'></script>
 <script src='/vendor/openlayers/{$OL}/ol3-layerswitcher.js'></script>
 <script type="text/javascript" src="vtec_static.js"></script>
@@ -37,6 +36,8 @@ var CONFIG = {
   radar: null,
   radarProduct: null,
   radarProductTime: null,
+  issue: null,
+  expire: null,
   year: {$year},
   wfo: "{$wfo4}",
   phenomena: "{$phenomena}",
@@ -157,10 +158,22 @@ EOM;
 $mapdiv = <<<EOM
 
 <div class="row">
+  <div class="col-md-3">
+    <select id="radarsource"></select>
+  </div>
+  <div class="col-md-3">
+    <select id="radarproduct"></select>
+  </div>
   <div class="col-md-6">
     <div id="timeslider"></div>
   </div>
 </div>
+<div class="row">
+  <div class="col-md-12">
+    <strong>Currently Displaying:</strong> @ <span id="radartime"></span>
+  </div>
+</div>
+
 
 <div id="map"></div>
 

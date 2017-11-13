@@ -4,6 +4,8 @@
 
 var olmap;
 var productVectorLayer;
+var radarTMSLayer;
+var radartimes = [];
 
 Number.prototype.padLeft = function (n,str){
     return Array(n-String(this).length+1).join(str||'0')+this;
@@ -62,9 +64,28 @@ function make_iem_tms(title, layername, visible, type){
     })
 }
 
+function getRADARSource(){
+    var dt = radartimes[$("#timeslider").slider("value")];
+    if (dt === undefined){
+        return new ol.source.XYZ({
+            url: '/cache/tile.py/1.0.0/ridge::USCOMP-N0Q-0/{z}/{x}/{y}.png'
+        });
+    }
+    radarTMSLayer.set('title', '@ '+ dt.format());
+    var src = $("#radarsource").val();
+    var prod = $("#radarproduct").val();
+    return new ol.source.XYZ({
+            url: '/cache/tile.py/1.0.0/ridge::'+src+'-'+prod+'-'+dt.utc().format('YMMDDHHmm')+'/{z}/{x}/{y}.png'
+    });
+}
+
 
 function buildMap(){
 	// Build up the mapping
+	radarTMSLayer = new ol.layer.Tile({
+        title: 'NEXRAD Base Reflectivity',
+        source: getRADARSource()
+	});
 	productVectorLayer = new ol.layer.Vector({
 		title: 'VTEC Product',
 		style: function(feature, resolution){
@@ -79,6 +100,7 @@ function buildMap(){
 			format: new ol.format.GeoJSON()
 		})
 	});
+	
 	olmap = new ol.Map({
 		target: 'map',
 		view: new ol.View({
@@ -91,6 +113,7 @@ function buildMap(){
 				title : 'OpenStreetMap',
 				visible : true,
 				source : new ol.source.OSM()}),
+			radarTMSLayer,
 			make_iem_tms('US States', 's-900913', true, ''),
 			productVectorLayer]
 	});
@@ -98,8 +121,77 @@ function buildMap(){
     olmap.addControl(layerSwitcher);
     
     olmap.on('moveend', function(){
-    	console.log('hi');
+    	console.log('map moveend event');
     });
+}
+function updateRADARTimeSlider(){
+	// operation=list&product=N0Q&radar=USCOMP&start=2012-01-23T08%3A10Z&end=2012-01-23T08%3A45Z
+	$.ajax({
+		data: {
+			radar: $("#radarsource").val(),
+			product: $("#radarproduct").val(),
+			start: CONFIG.issue.utc().format(),
+			end: CONFIG.expire.utc().format(),
+			operation: 'list'
+		},
+		url: '/json/radar',
+		method: 'GET',
+		dataType: 'json',
+		success: function(data){
+			// remove previous options
+			radartimes = [];
+			$.each(data.scans, function(idx, scan){
+				radartimes.push(moment(scan.ts));
+			});
+			$("#timeslider").slider("option", "max", radartimes.length).slider('value', 0);
+		}
+	});
+	
+}
+function updateRADARProducts(){
+	// operation=products&radar=USCOMP&start=2012-01-23T08%3A10Z
+	$.ajax({
+		data: {
+			radar: $("#radarsource").val(),
+			start: CONFIG.issue.utc().format(),
+			operation: 'products'
+		},
+		url: '/json/radar',
+		method: 'GET',
+		dataType: 'json',
+		success: function(data){
+			// remove previous options
+			$("#radarproduct").empty();
+			$.each(data.products, function(idx, product){
+				$("#radarproduct").append('<option value="'+ product.id + '">' + product.name + '</option>');
+			});
+			// step3
+			updateRADARTimeSlider();
+		}
+	});
+}
+function updateRADARSources(lon, lat){
+	//Update the Time Slider for the NEXRAD products available
+	// /json/radar to get radars, products, then scans
+	$.ajax({
+		data: {
+			lat: lat,
+			lon: lon,
+			operation: 'available'
+		},
+		url: '/json/radar',
+		method: 'GET',
+		dataType: 'json',
+		success: function(data){
+			// remove previous options
+			$("#radarsource").empty();
+			$.each(data.radars, function(idx, radar){
+				$("#radarsource").append('<option value="'+ radar.id + '">' + radar.name + '</option>');
+			});
+			// step2
+			updateRADARProducts();
+		}
+	});	
 }
 function loadTabs(){
 	// OK, lets load up the tab content
@@ -131,6 +223,8 @@ function loadTabs(){
 					ugc.utc_init_expire, ugc.utc_expire]);		
 			});
 			dt.draw();
+			CONFIG.issue = moment(data.utc_issue);
+			CONFIG.expire = moment(data.utc_expire);
 		}
 	});
 
@@ -159,6 +253,10 @@ function loadTabs(){
 			x = (e[2] + e[0]) / 2.;
 			y = (e[3] + e[1]) / 2.;
 			olmap.getView().setCenter([x, y]);
+			// Use these x, y coordinates to drive our RADAR availablility work
+			center = ol.proj.transform(olmap.getView().getCenter(),
+					'EPSG:3857', 'EPSG:4326');
+			updateRADARSources(center[0], center[1]);
 		}
 	});
 
@@ -234,8 +332,11 @@ function buildUI(){
 		min: 0,
 		max: 100,
         slide: function( event, ui ) {
+        	console.log("timeslider.slid called('" + ui.value + "')...");
+        	$("#radartime").html(radartimes[ui.value].format());
+        	radarTMSLayer.setSource(getRADARSource());
         }
-	}).slider("pips").slider("float");
+	});
 }
 
 $(function(){
