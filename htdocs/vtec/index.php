@@ -96,20 +96,21 @@ issued products with Valid Time Extent Coding (VTEC).</p>
 <br /><i>Above this section, you will notice 9 selectable tabs. Click on 
 the tab to show the information.</i>
 <br /><ul>
- <li><b>Help:</b>  This page!</li>
- <li><b>RADAR Map:</b>  Simple map displaying the product geography.</li>
- <li><b>Text Data:</b>  The raw text based products issued by the National Weather Service.  Any follow-up products are included as well.</li>
- <li><b>Google Map:</b>  Product and Storm Reports over Google Maps.</li>
- <li><b>SBW History:</b>  Displays changes in storm based warnings.</li>
- <li><b>Storm Reports within SBW:</b>  Storm Reports inside Storm Based Warning.</li>
- <li><b>All Storm Reports:</b>  Any Storm Reports during the time of the product for the issuing office.</li>
- <li><b>Geography Included:</b>  Counties/Zones affected by this product.</li>
- <li><b>List Events:</b>  List all events of the given phenomena, significance, year, and issuing office.</li>
+ <li><b>Help:</b> This page!</li>
+ <li><b>Event Info:</b> Details of the selected event.</li>
+ <li><b>Text Data:</b> The raw text product for this event.</li>
+ <li><b>Interactive Map:</b> An interactive map showing the event and RADAR.</li>
+ <li><b>Storm Reports:</b> Local Storm Reports.</li>
+ <li><b>List Events:</b> List all events of the given phenomena, significance, year, and issuing office.</li>
 </ul>
 </div>
 EOM;
 
 $infodiv = <<<EOM
+
+<p><strong><span id="vtec_label"></span></strong></p>
+
+<h3>Listing of Counties/Parishes/Zones Included in Product</h3>
 
 <table id="ugctable">
 <thead>
@@ -128,9 +129,16 @@ $infodiv = <<<EOM
 </tbody>
 </table>
 
-<div class="clearfix">&nbsp;</div>
+
+<h3>RADAR Composite at Issuance Time</h3>
+
+<div id="radarmap"></div>
+
+<h3>Storm Based Warning History</h3>
 
 <div id="sbwhistory"></div>
+
+
 
 EOM;
 
@@ -155,17 +163,56 @@ $eventsdiv = <<<EOM
 
 EOM;
 
+$lsrsdiv = <<<EOM
+
+<p><h3>All Storm Reports</h3></p>
+
+<table id="lsrtable">
+<thead>
+<tr>
+ <th>Time</th>
+ <th>Event</th>
+ <th>Magnitude</th>
+ <th>City</th>
+ <th>County</th>
+</tr>
+</thead>
+<tbody>
+
+</tbody>
+</table>
+
+<p><h3>Storm Reports within Product Polygon</h3></p>
+
+<table id="sbwlsrtable">
+<thead>
+<tr>
+ <th>Time</th>
+ <th>Event</th>
+ <th>Magnitude</th>
+ <th>City</th>
+ <th>County</th>
+</tr>
+</thead>
+<tbody>
+
+</tbody>
+</table>
+
+
+EOM;
+
 $mapdiv = <<<EOM
 
 <div class="row">
   <div class="col-md-3">
-    <select id="radarsource"></select>
+    <select id="radarsource" class="form-control"></select>
   </div>
   <div class="col-md-3">
-    <select id="radarproduct"></select>
+    <select id="radarproduct" class="form-control"></select>
   </div>
   <div class="col-md-6">
-    <div id="timeslider"></div>
+    <div id="timeslider" class="form-control"></div>
   </div>
 </div>
 <div class="row">
@@ -195,10 +242,10 @@ $t->content = <<<EOF
     <div class="panel-heading">
       <ul class="nav nav-tabs">
          <li class="active"><a href="#help" data-toggle="tab">Help</a></li>
-         <li><a href="#info" data-toggle="tab">Event Info</a></li>
+         <li><a id="event_tab" href="#info" data-toggle="tab">Event Info</a></li>
          <li><a href="#textdata" data-toggle="tab">Text Data</a></li>
          <li><a href="#themap" data-toggle="tab">Interactive Map</a></li>
-         <li><a href="#stormreports" data-toggle="tab">Storm Reports within SBW</a></li>
+         <li><a href="#stormreports" data-toggle="tab">Storm Reports</a></li>
          <li><a href="#listevents" data-toggle="tab">List Events</a></li>
       </ul>
     </div><!-- ./panel-heading -->
@@ -211,7 +258,7 @@ $t->content = <<<EOF
        </div><!-- ./info -->
        <div class="tab-pane" id="textdata">Text Data</div><!-- ./textdata -->
        <div class="tab-pane" id="themap">{$mapdiv}</div><!-- ./themap -->
-       <div class="tab-pane" id="stormreports">Storm Reports</div><!-- ./stormreports -->
+       <div class="tab-pane" id="stormreports">{$lsrsdiv}</div><!-- ./stormreports -->
        <div class="tab-pane" id="listevents">{$eventsdiv}</div><!-- ./listevents -->
     </div><!-- ./tab-content -->
     </div><!-- ./panel-body -->

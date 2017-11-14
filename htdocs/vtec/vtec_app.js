@@ -3,13 +3,42 @@
 // previous hashlinking looks like 2017-O-NEW-KALY-WI-Y-0015
 
 var olmap;
-var productVectorLayer;
+var productVectorCountyLayer;
+var productVectorPolygonLayer;
 var radarTMSLayer;
 var radartimes = [];
+var lsrTable;
+var eventTable;
+var ugcTable;
+var sbwLsrTable;
 
 Number.prototype.padLeft = function (n,str){
     return Array(n-String(this).length+1).join(str||'0')+this;
 }
+
+var sbwLookup = {
+        "TO": 'red',
+        "MA": 'purple',
+        "FF": 'green',
+        "EW": 'green',
+        "FA": 'green',
+        "FL": 'green',
+        "SV": 'yellow'
+       };
+
+var sbwStyle = [new ol.style.Style({
+	stroke: new ol.style.Stroke({
+		color: '#FFF',
+		width: 4.5
+	})
+	}), new ol.style.Style({
+		stroke: new ol.style.Stroke({
+			color: '#319FD3',
+			width: 3
+		})
+	})
+];
+
 
 function updateHash(){
 	// Set the hashlink as per our current CONFIG
@@ -74,8 +103,10 @@ function getRADARSource(){
     radarTMSLayer.set('title', '@ '+ dt.format());
     var src = $("#radarsource").val();
     var prod = $("#radarproduct").val();
+    var url = '/cache/tile.py/1.0.0/ridge::'+src+'-'+prod+'-'+dt.utc().format('YMMDDHHmm')+'/{z}/{x}/{y}.png';
+    console.log("radarTMSLayer source url now: " + url);
     return new ol.source.XYZ({
-            url: '/cache/tile.py/1.0.0/ridge::'+src+'-'+prod+'-'+dt.utc().format('YMMDDHHmm')+'/{z}/{x}/{y}.png'
+            url: url
     });
 }
 
@@ -86,8 +117,8 @@ function buildMap(){
         title: 'NEXRAD Base Reflectivity',
         source: getRADARSource()
 	});
-	productVectorLayer = new ol.layer.Vector({
-		title: 'VTEC Product',
+	productVectorCountyLayer = new ol.layer.Vector({
+		title: 'VTEC Product Geometry',
 		style: function(feature, resolution){
 			return [new ol.style.Style({
 				stroke: new ol.style.Stroke({
@@ -100,7 +131,19 @@ function buildMap(){
 			format: new ol.format.GeoJSON()
 		})
 	});
-	
+
+	productVectorPolygonLayer = new ol.layer.Vector({
+		title: 'VTEC Product Polygon',
+		style: function(feature, resolution){
+			console.log(feature.get('phenomena'));
+            sbwStyle[1].getStroke().setColor(sbwLookup[feature.get('phenomena')]);
+            return sbwStyle;
+		},
+		source: new ol.source.Vector({
+			format: new ol.format.GeoJSON()
+		})
+	});
+
 	olmap = new ol.Map({
 		target: 'map',
 		view: new ol.View({
@@ -115,7 +158,8 @@ function buildMap(){
 				source : new ol.source.OSM()}),
 			radarTMSLayer,
 			make_iem_tms('US States', 's-900913', true, ''),
-			productVectorLayer]
+			productVectorCountyLayer,
+			productVectorPolygonLayer]
 	});
     var layerSwitcher = new ol.control.LayerSwitcher();
     olmap.addControl(layerSwitcher);
@@ -153,7 +197,7 @@ function updateRADARProducts(){
 	$.ajax({
 		data: {
 			radar: $("#radarsource").val(),
-			start: CONFIG.issue.utc().format(),
+			start: (CONFIG.issue != null) ? CONFIG.issue.utc().format(): '',
 			operation: 'products'
 		},
 		url: '/json/radar',
@@ -170,13 +214,17 @@ function updateRADARProducts(){
 		}
 	});
 }
-function updateRADARSources(lon, lat){
+function updateRADARSources(){
 	//Update the Time Slider for the NEXRAD products available
 	// /json/radar to get radars, products, then scans
+	// Use these x, y coordinates to drive our RADAR availablility work
+	var center = ol.proj.transform(olmap.getView().getCenter(),
+			'EPSG:3857', 'EPSG:4326');
 	$.ajax({
 		data: {
-			lat: lat,
-			lon: lon,
+			lat: center[1],
+			lon: center[0],
+			start: (CONFIG.issue != null) ? CONFIG.issue.utc().format(): '',
 			operation: 'available'
 		},
 		url: '/json/radar',
@@ -193,48 +241,17 @@ function updateRADARSources(lon, lat){
 		}
 	});	
 }
-function loadTabs(){
-	// OK, lets load up the tab content
-	var vstring = CONFIG.year +"."+ CONFIG.wfo +"."+ CONFIG.phenomena +
-		"."+ CONFIG.significance +"." + CONFIG.etn;
-	$("#radarmap").html("<img src=\"/GIS/radmap.php?layers[]=nexrad&"+
-			"layers[]=sbw&layers[]=sbwh&layers[]=uscounties&"+
-			"vtec=2012.O.NEW.KBMX.TO.W.0001\" class=\"img img-responsive\">");
-	$("#sbwhistory").html("<img src=\"/GIS/sbw-history.php?vtec="+ vstring +
-			"\" class=\"img img-responsive\">");
+function getVTECGeometry(){
+	// After the initial metadata is fetched, we get the geometry
 	$.ajax({
 		data: {
 			wfo: CONFIG.wfo,
 			phenomena: CONFIG.phenomena,
 			significance: CONFIG.significance,
 			etn: CONFIG.etn,
-			year: CONFIG.year
-		},
-		url: "/json/vtec_event.py",
-		method: "GET",
-		dataType: "json",
-		success: function(data){
-			$("#textdata").html("<pre>"+ data.report +"</pre>");
-			var dt = $("#ugctable").DataTable();
-			dt.clear();
-			$.each(data.ugcs, function(idx, ugc){
-				dt.row.add([ugc.ugc, ugc.name, ugc.status,
-					ugc.utc_product_issue, ugc.utc_issue,
-					ugc.utc_init_expire, ugc.utc_expire]);		
-			});
-			dt.draw();
-			CONFIG.issue = moment(data.utc_issue);
-			CONFIG.expire = moment(data.utc_expire);
-		}
-	});
-
-	$.ajax({
-		data: {
-			wfo: CONFIG.wfo,
-			phenomena: CONFIG.phenomena,
-			significance: CONFIG.significance,
-			etn: CONFIG.etn,
-			year: CONFIG.year
+			year: CONFIG.year,
+			sbw: 0,
+			lsrs: 0
 		},
 		url: "/geojson/vtec_event.py",
 		method: "GET",
@@ -248,15 +265,128 @@ function loadTabs(){
 			var vectorSource = new ol.source.Vector({
 				features: format.readFeatures(geodata)
 			});
-			productVectorLayer.setSource(vectorSource);
-			var e = productVectorLayer.getSource().getExtent();
+			productVectorCountyLayer.setSource(vectorSource);
+			var e = productVectorCountyLayer.getSource().getExtent();
 			x = (e[2] + e[0]) / 2.;
 			y = (e[3] + e[1]) / 2.;
 			olmap.getView().setCenter([x, y]);
-			// Use these x, y coordinates to drive our RADAR availablility work
-			center = ol.proj.transform(olmap.getView().getCenter(),
-					'EPSG:3857', 'EPSG:4326');
-			updateRADARSources(center[0], center[1]);
+			updateRADARSources();
+		}
+	});
+	$.ajax({
+		data: {
+			wfo: CONFIG.wfo,
+			phenomena: CONFIG.phenomena,
+			significance: CONFIG.significance,
+			etn: CONFIG.etn,
+			year: CONFIG.year,
+			sbw: 1,
+			lsrs: 0
+		},
+		url: "/geojson/vtec_event.py",
+		method: "GET",
+		dataType: "json",
+		success: function(geodata){
+			// The below was way painful on how to get the EPSG 4326 data
+			// to load
+			var format = new ol.format.GeoJSON({
+				featureProjection: "EPSG:3857"
+			});
+			var vectorSource = new ol.source.Vector({
+				features: format.readFeatures(geodata)
+			});
+			productVectorPolygonLayer.setSource(vectorSource);
+		}
+	});
+	// All LSRs
+	$.ajax({
+		data: {
+			wfo: CONFIG.wfo,
+			phenomena: CONFIG.phenomena,
+			significance: CONFIG.significance,
+			etn: CONFIG.etn,
+			year: CONFIG.year,
+			sbw: 0,
+			lsrs: 1
+		},
+		url: "/geojson/vtec_event.py",
+		method: "GET",
+		dataType: "json",
+		success: function(geodata){
+			lsrTable.clear();
+			$.each(geodata.features, function(idx, feat){
+				prop = feat.properties;
+				lsrTable.row.add([prop.utc_valid, prop.event,
+					prop.magnitude, prop.city, prop.county]);		
+			});
+			lsrTable.draw();
+		}
+	});
+	// SBW LSRs
+	$.ajax({
+		data: {
+			wfo: CONFIG.wfo,
+			phenomena: CONFIG.phenomena,
+			significance: CONFIG.significance,
+			etn: CONFIG.etn,
+			year: CONFIG.year,
+			sbw: 1,
+			lsrs: 1
+		},
+		url: "/geojson/vtec_event.py",
+		method: "GET",
+		dataType: "json",
+		success: function(geodata){
+			sbwLsrTable.clear();
+			$.each(geodata.features, function(idx, feat){
+				prop = feat.properties;
+				sbwLsrTable.row.add([prop.utc_valid, prop.event,
+					prop.magnitude, prop.city, prop.county]);		
+			});
+			sbwLsrTable.draw();
+		}
+	});
+}
+
+function loadTabs(){
+	// OK, lets load up the tab content
+	var vstring = CONFIG.year +".O.NEW."+ CONFIG.wfo +"."+ CONFIG.phenomena +
+		"."+ CONFIG.significance +"." + CONFIG.etn.padLeft(4);
+	var vstring2 = CONFIG.year +"."+ CONFIG.wfo +"."+ CONFIG.phenomena +
+		"."+ CONFIG.significance +"." + CONFIG.etn.padLeft(4);
+	$("#radarmap").html("<img src=\"/GIS/radmap.php?layers[]=nexrad&"+
+			"layers[]=sbw&layers[]=sbwh&layers[]=uscounties&"+
+			"vtec="+vstring+"\" class=\"img img-responsive\">");
+	$("#sbwhistory").html("<img src=\"/GIS/sbw-history.php?vtec="+ vstring2 +
+			"\" class=\"img img-responsive\">");
+	
+	$("#vtec_label").html(CONFIG.year + " " + $("#wfo option:selected").text()
+			+ " " + $("#phenomena option:selected").text()
+			+ " " + $("#significance option:selected").text()
+			+ " Number " + $("#etn").val());
+	$.ajax({
+		data: {
+			wfo: CONFIG.wfo,
+			phenomena: CONFIG.phenomena,
+			significance: CONFIG.significance,
+			etn: CONFIG.etn,
+			year: CONFIG.year
+		},
+		url: "/json/vtec_event.py",
+		method: "GET",
+		dataType: "json",
+		success: function(data){
+			$("#textdata").html("<pre>"+ data.report +"</pre>");
+			ugcTable.clear();
+			$.each(data.ugcs, function(idx, ugc){
+				ugcTable.row.add([ugc.ugc, ugc.name, ugc.status,
+					ugc.utc_product_issue, ugc.utc_issue,
+					ugc.utc_init_expire, ugc.utc_expire]);		
+			});
+			ugcTable.draw();
+			CONFIG.issue = moment(data.utc_issue);
+			CONFIG.expire = moment(data.utc_expire);
+			getVTECGeometry();
 		}
 	});
 
@@ -271,13 +401,12 @@ function loadTabs(){
 		method: "GET",
 		dataType: "json",
 		success: function(data){
-			var dt = $("#eventtable").DataTable();
-			dt.clear();
+			eventTable.clear();
 			$.each(data.events, function(idx, vtec){
-				dt.row.add([vtec.eventid, vtec.product_issue, vtec.issue,
+				eventTable.row.add([vtec.eventid, vtec.product_issue, vtec.issue,
 					vtec.init_expire, vtec.expire, vtec.area, vtec.locations]);		
 			});
-			dt.draw();
+			eventTable.draw();
 		}
 	});
 	updateHash();
@@ -319,8 +448,19 @@ function buildUI(){
 		loadTabs();
 		$(this).blur();
 	});
-	$("#ugctable").DataTable();
-	$("#eventtable").DataTable();
+	ugcTable = $("#ugctable").DataTable();
+	lsrTable = $("#lsrtable").DataTable();
+	sbwLsrTable = $("#sbwlsrtable").DataTable();
+
+	eventTable = $("#eventtable").DataTable();
+	$('#eventtable tbody').on('click', 'tr', function () {
+        var data = eventTable.row( this ).data();
+        if (data[0] == CONFIG.etn) return;
+        CONFIG.etn = data[0];
+        loadTabs();
+        // Switch to the details tab after the click
+        $('#event_tab').trigger('click');
+    });
 
 	$('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
 		  var target = $(e.target).attr("href") // activated tab
@@ -331,11 +471,19 @@ function buildUI(){
 	$("#timeslider").slider({
 		min: 0,
 		max: 100,
-        slide: function( event, ui ) {
-        	console.log("timeslider.slid called('" + ui.value + "')...");
+        change: function( event, ui ) {
+        	console.log("timeslider#change called('" + ui.value + "')...");
         	$("#radartime").html(radartimes[ui.value].format());
         	radarTMSLayer.setSource(getRADARSource());
         }
+	});
+	$("#radarsource").change(function(){
+		updateRADARProducts();
+	});
+	$("#radarproduct").change(function(){
+		// we can safely(??) assume that radartimes does not update when we
+		// switch products
+    	radarTMSLayer.setSource(getRADARSource());
 	});
 }
 
