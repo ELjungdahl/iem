@@ -22,28 +22,41 @@ def run(wfo, year, phenomena, significance):
     cursor = pgconn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     table = "warnings_%s" % (year,)
+    sbwtable = "sbw_%s" % (year, )
     plimit = "phenomena is not null and significance is not null"
     if phenomena is not None and significance is not None:
         plimit = ("phenomena = '%s' and significance = '%s'"
                   ) % (phenomena[:2], significance[0])
     cursor.execute("""
-    SELECT
-    round(sum(ST_area(
-        ST_transform(u.geom,2163)) / 1000000.0)::numeric,0) as area,
-    string_agg(u.name || ' ['||u.state||']', ', ') as locations,
-    eventid, phenomena, significance,
-    min(issue) at time zone 'UTC' as utc_issue,
-    max(expire) at time zone 'UTC' as utc_expire,
-    min(product_issue) at time zone 'UTC' as utc_product_issue,
-    max(init_expire) at time zone 'UTC' as utc_init_expire,
-    max(hvtec_nwsli) as nwsli,
-    max(fcster) as fcster from
-    """+table+""" w JOIN ugcs u on (w.gid = u.gid)
-    WHERE w.wfo = %s and eventid is not null and
-    """ + plimit + """
-    GROUP by phenomena, significance, eventid
-    ORDER by phenomena ASC, significance ASC, utc_issue ASC
-    """, (wfo,))
+    WITH polyareas as (
+        SELECT phenomena, significance, eventid, round((ST_area(
+        ST_transform(geom,2163)) / 1000000.0)::numeric,0) as area
+        from """ + sbwtable + """ WHERE
+        wfo = %s and eventid is not null and
+        """ + plimit + """ and status = 'NEW'
+    ), ugcareas as (
+        SELECT
+        round(sum(ST_area(
+            ST_transform(u.geom,2163)) / 1000000.0)::numeric,0) as area,
+        string_agg(u.name || ' ['||u.state||']', ', ') as locations,
+        eventid, phenomena, significance,
+        min(issue) at time zone 'UTC' as utc_issue,
+        max(expire) at time zone 'UTC' as utc_expire,
+        min(product_issue) at time zone 'UTC' as utc_product_issue,
+        max(init_expire) at time zone 'UTC' as utc_init_expire,
+        max(hvtec_nwsli) as nwsli,
+        max(fcster) as fcster from
+        """+table+""" w JOIN ugcs u on (w.gid = u.gid)
+        WHERE w.wfo = %s and eventid is not null and
+        """ + plimit + """
+        GROUP by phenomena, significance, eventid)
+
+    SELECT u.*, coalesce(p.area, u.area) as myarea
+    from ugcareas u LEFT JOIN polyareas p on
+    (u.phenomena = p.phenomena and u.significance = p.significance
+     and u.eventid = p.eventid)
+        ORDER by u.phenomena ASC, u.significance ASC, u.utc_issue ASC
+    """, (wfo, wfo))
     res = {'wfo': wfo, 'year': year, 'events': []}
     for row in cursor:
         uri = "/vtec/#%s-O-NEW-K%s-%s-%s-%04i" % (year, wfo, row['phenomena'],
@@ -53,7 +66,7 @@ def run(wfo, year, phenomena, significance):
             dict(phenomena=row['phenomena'],
                  significance=row['significance'],
                  eventid=row['eventid'],
-                 area=float(row['area']),
+                 area=float(row['myarea']),
                  locations=row['locations'],
                  issue=row['utc_issue'].strftime(ISO9660),
                  product_issue=row['utc_product_issue'].strftime(ISO9660),
@@ -83,7 +96,10 @@ def main():
     res = mc.get(mckey)
     if not res:
         res = run(wfo, year, phenomena, significance)
+        sys.stderr.write("Setting cache: %s\n" % (mckey, ))
         mc.set(mckey, res, 3600)
+    else:
+        sys.stderr.write("Using cache: %s\n" % (mckey, ))
 
     if cb is None:
         sys.stdout.write(res)
