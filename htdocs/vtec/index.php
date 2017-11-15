@@ -170,6 +170,7 @@ $lsrsdiv = <<<EOM
 <table id="lsrtable">
 <thead>
 <tr>
+ <th></th>
  <th>Time</th>
  <th>Event</th>
  <th>Magnitude</th>
@@ -187,6 +188,7 @@ $lsrsdiv = <<<EOM
 <table id="sbwlsrtable">
 <thead>
 <tr>
+ <th></th>
  <th>Time</th>
  <th>Event</th>
  <th>Magnitude</th>

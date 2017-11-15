@@ -22,7 +22,8 @@ def run_lsrs(wfo, year, phenomena, significance, etn, sbw):
     warningtable = "warnings_%s" % (year, )
     if sbw == 1:
         sql = """
-            SELECT distinct l.*, valid at time zone 'UTC' as utc_valid
+            SELECT distinct l.*, valid at time zone 'UTC' as utc_valid,
+            ST_asGeoJson(l.geom) as geojson
             from """ + lsrtable + """ l,
             """ + sbwtable + """ w WHERE
             l.geom && w.geom and ST_contains(w.geom, l.geom)
@@ -42,7 +43,8 @@ def run_lsrs(wfo, year, phenomena, significance, etn, sbw):
                 w.significance = %s
                 and w.phenomena = %s)
 
-            SELECT distinct l.*, valid at time zone 'UTC' as utc_valid
+            SELECT distinct l.*, valid at time zone 'UTC' as utc_valid,
+            ST_asGeoJson(l.geom) as geojson
             from """ + lsrtable + """ l, countybased c WHERE
             l.valid >= c.issued and l.valid < c.expired and
             l.wfo = %s ORDER by l.valid ASC

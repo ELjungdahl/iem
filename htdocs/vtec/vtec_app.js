@@ -7,9 +7,9 @@ var productVectorCountyLayer;
 var productVectorPolygonLayer;
 var radarTMSLayer;
 var radartimes = [];
-var lsrTable;
 var eventTable;
 var ugcTable;
+var lsrTable;
 var sbwLsrTable;
 
 Number.prototype.padLeft = function (n,str){
@@ -316,8 +316,7 @@ function getVTECGeometry(){
 			lsrTable.clear();
 			$.each(geodata.features, function(idx, feat){
 				prop = feat.properties;
-				lsrTable.row.add([prop.utc_valid, prop.event,
-					prop.magnitude, prop.city, prop.county]);		
+				lsrTable.row.add(prop);		
 			});
 			lsrTable.draw();
 		}
@@ -340,8 +339,7 @@ function getVTECGeometry(){
 			sbwLsrTable.clear();
 			$.each(geodata.features, function(idx, feat){
 				prop = feat.properties;
-				sbwLsrTable.row.add([prop.utc_valid, prop.event,
-					prop.magnitude, prop.city, prop.county]);		
+				sbwLsrTable.row.add(prop);		
 			});
 			sbwLsrTable.draw();
 		}
@@ -411,6 +409,63 @@ function loadTabs(){
 	});
 	updateHash();
 }
+function remarkformat(d){
+    
+    // `d` is the original data object for the row
+    return '<div style="margin-left: 10px;"><strong>Remark:</strong> ' + d.remark + '</div>';
+}
+function makeLSRTable(div){
+	var table = $("#"+div).DataTable({
+		select:"single",
+        "columns": [
+            {
+                "className": 'details-control',
+                "orderable": false,
+                "data": null,
+                "defaultContent": '',
+                "render": function () {
+                    return '<i class="fa fa-plus-square" aria-hidden="true"></i>';
+                },
+                width:"15px"
+            },
+            { "data": "utc_valid" },
+            { "data": "event" },
+            { "data": "magnitude" },
+            { "data": "city" },
+            { "data": "county" },
+            {"data": "remark", visible: false}
+        ],
+        "order": [[1, 'asc']]
+	});
+    // Add event listener for opening and closing details
+    $('#'+div+' tbody').on('click', 'td.details-control', function () {
+        var tr = $(this).closest('tr');
+        var tdi = tr.find("i.fa");
+        var row = table.row(tr);
+
+        if (row.child.isShown()) {
+            // This row is already open - close it
+            row.child.hide();
+            tr.removeClass('shown');
+            tdi.first().removeClass('fa-minus-square');
+            tdi.first().addClass('fa-plus-square');
+        }
+        else {
+            // Open this row
+            row.child(remarkformat(row.data())).show();
+            tr.addClass('shown');
+            tdi.first().removeClass('fa-plus-square');
+            tdi.first().addClass('fa-minus-square');
+        }
+    });
+
+    table.on("user-select", function (e, dt, type, cell, originalEvent) {
+        if ($(cell.node()).hasClass("details-control")) {
+            e.preventDefault();
+        }
+    });
+    return table;
+}
 
 function buildUI(){
 	// build the UI components
@@ -449,8 +504,8 @@ function buildUI(){
 		$(this).blur();
 	});
 	ugcTable = $("#ugctable").DataTable();
-	lsrTable = $("#lsrtable").DataTable();
-	sbwLsrTable = $("#sbwlsrtable").DataTable();
+	lsrTable = makeLSRTable("lsrtable");
+	sbwLsrTable = makeLSRTable("sbwlsrtable");
 
 	eventTable = $("#eventtable").DataTable();
 	$('#eventtable tbody').on('click', 'tr', function () {
