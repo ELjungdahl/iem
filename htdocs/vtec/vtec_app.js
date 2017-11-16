@@ -5,6 +5,7 @@
 var olmap;
 var productVectorCountyLayer;
 var productVectorPolygonLayer;
+var sbwIntersectionLayer;
 var radarTMSLayer;
 var radartimes = [];
 var eventTable;
@@ -38,6 +39,40 @@ var sbwStyle = [new ol.style.Style({
 		})
 	})
 ];
+
+var sbwIntersectionStyle = [new ol.style.Style({
+	stroke: new ol.style.Stroke({
+		color: '#551A8B',
+		width: 10
+	})
+	})
+];
+
+
+//https://stackoverflow.com/questions/2044616
+function selectElementContents(elid) {
+        var el = document.getElementById(elid);
+        var body = document.body, range, sel;
+    if (document.createRange && window.getSelection) {
+        range = document.createRange();
+        sel = window.getSelection();
+        sel.removeAllRanges();
+        try {
+            range.selectNodeContents(el);
+            sel.addRange(range);
+        } catch (e) {
+            range.selectNode(el);
+            sel.addRange(range);
+        }
+        document.execCommand("copy");
+    } else if (body.createTextRange) {
+        range = body.createTextRange();
+        range.moveToElementText(el);
+        range.select();
+        range.execCommand("Copy");
+    }
+}
+
 
 
 function updateHash(){
@@ -132,10 +167,18 @@ function buildMap(){
 		})
 	});
 
+	sbwIntersectionLayer = new ol.layer.Vector({
+		title: 'SBW County Intersection',
+		style: sbwIntersectionStyle,
+		source: new ol.source.Vector({
+			format: new ol.format.GeoJSON()
+		})
+	});
+
+	
 	productVectorPolygonLayer = new ol.layer.Vector({
 		title: 'VTEC Product Polygon',
 		style: function(feature, resolution){
-			console.log(feature.get('phenomena'));
             sbwStyle[1].getStroke().setColor(sbwLookup[feature.get('phenomena')]);
             return sbwStyle;
 		},
@@ -158,6 +201,7 @@ function buildMap(){
 				source : new ol.source.OSM()}),
 			radarTMSLayer,
 			make_iem_tms('US States', 's-900913', true, ''),
+			sbwIntersectionLayer,
 			productVectorCountyLayer,
 			productVectorPolygonLayer]
 	});
@@ -298,6 +342,31 @@ function getVTECGeometry(){
 			productVectorPolygonLayer.setSource(vectorSource);
 		}
 	});
+	// Intersection
+	$.ajax({
+		data: {
+			wfo: CONFIG.wfo,
+			phenomena: CONFIG.phenomena,
+			significance: CONFIG.significance,
+			eventid: CONFIG.etn,
+			year: CONFIG.year
+		},
+		url: "/geojson/sbw_county_intersect.php",
+		method: "GET",
+		dataType: "json",
+		success: function(geodata){
+			// The below was way painful on how to get the EPSG 4326 data
+			// to load
+			var format = new ol.format.GeoJSON({
+				featureProjection: "EPSG:3857"
+			});
+			var vectorSource = new ol.source.Vector({
+				features: format.readFeatures(geodata)
+			});
+			sbwIntersectionLayer.setSource(vectorSource);
+		}
+	});
+
 	// All LSRs
 	$.ajax({
 		data: {

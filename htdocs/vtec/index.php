@@ -112,6 +112,14 @@ $infodiv = <<<EOM
 
 <h3>Listing of Counties/Parishes/Zones Included in Product</h3>
 
+<div class="pull-right">
+    <button class="btn btn-default"
+    onclick="selectElementContents('ugctable');">
+    <i class="fa fa-clipboard"></i> Copy Table to Clipboard
+    </button>
+</div>
+
+
 <table id="ugctable">
 <thead>
 <tr>
@@ -144,6 +152,17 @@ EOM;
 
 $eventsdiv = <<<EOM
 
+<p>This table lists other events issued by the selected office for the
+selected year.  Click on the row to select that event.</p> 
+
+<div class="pull-right">
+    <button class="btn btn-default"
+    onclick="selectElementContents('eventtable');">
+    <i class="fa fa-clipboard"></i> Copy Events to Clipboard
+    </button>
+</div>
+
+
 <table id="eventtable">
 <thead>
 <tr>
@@ -165,7 +184,15 @@ EOM;
 
 $lsrsdiv = <<<EOM
 
-<p><h3>All Storm Reports</h3></p>
+<p><h3>All Storm Reports within Event Political Coverage</h3></p>
+
+<div class="pull-right">
+    <button class="btn btn-default"
+    onclick="selectElementContents('lsrtable');">
+    <i class="fa fa-clipboard"></i> Copy LSRs to Clipboard
+    </button>
+</div>
+
 
 <table id="lsrtable">
 <thead>
@@ -184,6 +211,14 @@ $lsrsdiv = <<<EOM
 </table>
 
 <p><h3>Storm Reports within Product Polygon</h3></p>
+
+<div class="pull-right">
+    <button class="btn btn-default"
+    onclick="selectElementContents('sbwlsrtable');">
+    <i class="fa fa-clipboard"></i> Copy LSRs to Clipboard
+    </button>
+</div>
+
 
 <table id="sbwlsrtable">
 <thead>
