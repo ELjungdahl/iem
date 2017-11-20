@@ -4,7 +4,7 @@ require_once "../../include/myview.php";
 $OL = "4.4.2";
 $t = new MyView();
 $t->thispage = "severe-vtec";
-$t->title = "Valid Time Extent Code (VTEC) App";
+$t->title = "Valid Time Event Code (VTEC) App";
 
 $v = isset($_GET["vtec"]) ? $_GET["vtec"] : "2012-O-NEW-KBMX-TO-W-0001";
 $tokens = preg_split('/-/', $v);
@@ -90,7 +90,7 @@ $helpdiv = <<<EOM
  <h2>IEM VTEC Product Browser 4.0</h2>
 
  <p>This application allows easy navigation of National Weather Service
-issued products with Valid Time Extent Coding (VTEC).</p>
+issued products with Valid Time Event Coding (VTEC).</p>
 
 <p style="margin-top: 10px;"><b>Tab Functionality:</b>
 <br /><i>Above this section, you will notice 9 selectable tabs. Click on 
@@ -109,6 +109,11 @@ EOM;
 $infodiv = <<<EOM
 
 <p><strong><span id="vtec_label"></span></strong></p>
+
+<button type="button" id="lsr_kml_button" class="btn btn-default"><i class="fa fa-search"></i> LSR KML Source</button>
+<button type="button" id="warn_kml_button" class="btn btn-default"><i class="fa fa-search"></i> Warning KML Source</button>
+<button type="button" id="ci_kml_button" class="btn btn-default"><i class="fa fa-search"></i> County Intersection KML Source</button>
+<button type="button" id="gr_button" class="btn btn-default"><i class="fa fa-search"></i> Gibson Ridge Placefile</button>
 
 <h3>Listing of Counties/Parishes/Zones Included in Product</h3>
 

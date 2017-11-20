@@ -48,6 +48,16 @@ var sbwIntersectionStyle = [new ol.style.Style({
 	})
 ];
 
+function urlencode(){
+	// Make our CONFIG object a URI
+	var uri = "?";
+	uri += "year=" + CONFIG.year;
+	uri += "phenomena=" + CONFIG.phenomena;
+	uri += "significance=" + CONFIG.significance;
+	uri += "eventid=" + CONFIG.etn;
+	uri += "wfo="+ CONFIG.wfo;
+	return uri;
+}
 
 //https://stackoverflow.com/questions/2044616
 function selectElementContents(elid) {
@@ -77,10 +87,16 @@ function selectElementContents(elid) {
 
 function updateHash(){
 	// Set the hashlink as per our current CONFIG
-	window.location.href = "#" + CONFIG.year +"-O-NEW-"+
+	var href = "#" + CONFIG.year +"-O-NEW-"+
     CONFIG.wfo +"-"+ CONFIG.phenomena +"-"+
     CONFIG.significance +"-"+
     CONFIG.etn.padLeft(4);
+	if (CONFIG.radarProductTime != null && CONFIG.radarProduct != null &&
+			CONFIG.radar != null){
+		href += "/" + CONFIG.radar + "-" + CONFIG.radarProduct +
+		"-" + CONFIG.radarProductTime.utc().format('YMMDDHHmm');
+	}
+	window.location.href = href;
 }
 
 function parseHash(){
@@ -101,7 +117,9 @@ function parseHash(){
             if (radartokens.length == 3){
                 CONFIG.radar = radartokens[0];
                 CONFIG.radarProduct = radartokens[1];
-                CONFIG.radarProductTime = Date.parseDate(radartokens[2],'YmdHi');
+                console.log("setting radarProducTime from parseHash()");
+                CONFIG.radarProductTime = moment.utc(radartokens[2],
+                		'YYYYMMDDHHmm');
             }
 	    }
 	}
@@ -231,7 +249,16 @@ function updateRADARTimeSlider(){
 			$.each(data.scans, function(idx, scan){
 				radartimes.push(moment(scan.ts));
 			});
-			$("#timeslider").slider("option", "max", radartimes.length).slider('value', 0);
+			if (CONFIG.radarProductTime == null && radartimes.length > 0){
+				CONFIG.radarProducTime = radartimes[0];
+			}
+			var idx = 0;
+			$.each(radartimes, function(i, rt){
+				if (rt.isSame(CONFIG.radarProductTime)){
+					idx = i;
+				};
+			});
+			$("#timeslider").slider("option", "max", radartimes.length).slider('value', idx);
 		}
 	});
 	
@@ -253,14 +280,17 @@ function updateRADARProducts(){
 			$.each(data.products, function(idx, product){
 				$("#radarproduct").append('<option value="'+ product.id + '">' + product.name + '</option>');
 			});
+			if (CONFIG.radarProduct){
+				$("#radarproduct").val(CONFIG.radarProduct);
+			} else {
+				CONFIG.radarProduct = $("#radarproduct").val();
+			}
 			// step3
 			updateRADARTimeSlider();
 		}
 	});
 }
 function updateRADARSources(){
-	//Update the Time Slider for the NEXRAD products available
-	// /json/radar to get radars, products, then scans
 	// Use these x, y coordinates to drive our RADAR availablility work
 	var center = ol.proj.transform(olmap.getView().getCenter(),
 			'EPSG:3857', 'EPSG:4326');
@@ -280,6 +310,11 @@ function updateRADARSources(){
 			$.each(data.radars, function(idx, radar){
 				$("#radarsource").append('<option value="'+ radar.id + '">' + radar.name + '</option>');
 			});
+			if (CONFIG.radar){
+				$("#radarsource").val(CONFIG.radar);
+			} else {
+				CONFIG.radar = $("#radarsource").val();
+			}
 			// step2
 			updateRADARProducts();
 		}
@@ -597,17 +632,36 @@ function buildUI(){
 		max: 100,
         change: function( event, ui ) {
         	console.log("timeslider#change called('" + ui.value + "')...");
+        	console.log("setting radarProductTime");
+        	CONFIG.radarProductTime = radartimes[ui.value];
         	$("#radartime").html(radartimes[ui.value].format());
         	radarTMSLayer.setSource(getRADARSource());
+    		updateHash();
         }
 	});
 	$("#radarsource").change(function(){
+		CONFIG.radar = $("#radarsource").val();
 		updateRADARProducts();
+		updateHash();
 	});
 	$("#radarproduct").change(function(){
 		// we can safely(??) assume that radartimes does not update when we
 		// switch products
+		CONFIG.radarProduct = $("#radarproduct").val();
     	radarTMSLayer.setSource(getRADARSource());
+    	updateHash();
+	});
+	$("#lsr_kml_button").click(function(){
+		window.location.href = "/kml/sbw_lsrs.php?" + urlencode();
+	});
+	$("#warn_kml_button").click(function(){
+		window.location.href = "/kml/vtec.php?" + urlencode();
+	});
+	$("#ci_kml_button").click(function(){
+		window.location.href = "/kml/sbw_county_intersect.php?" + urlencode();
+	});
+	$("#gr_button").click(function(){
+		window.location.href = "/request/grx/vtec.php?" + urlencode();
 	});
 }
 

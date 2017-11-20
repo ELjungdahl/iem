@@ -102,8 +102,7 @@ def main():
     res = mc.get(mckey)
     if not res:
         res = run(wfo, year, phenomena, significance, etn)
-        sys.stderr.write("WARNING vtec_event cache bust at 30s...\n")
-        mc.set(mckey, res, 30)
+        mc.set(mckey, res, 300)
 
     if cb is None:
         sys.stdout.write(res)
